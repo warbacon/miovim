@@ -1,13 +1,15 @@
 local M = {}
 ---@class ManpackPluginSpec
----@field config function
----@field branch string
----@field event string|string[]
----@field filetype string|string[]
+---@field config? function
+---@field branch? string
+---@field event? string|string[]
+---@field filetype? string|string[]
+---@field build? function
 
 ---@param plugin_name string
 ---@param spec? ManpackPluginSpec
 function M.load(plugin_name, spec)
+    spec = spec or {}
     local plugin = "https://github.com/" .. plugin_name
     local manpackpath = vim.fn.stdpath("data") .. "/manpack"
     local plugin_dir = manpackpath .. "/" .. vim.fs.basename(plugin_name)
@@ -26,19 +28,18 @@ function M.load(plugin_name, spec)
             print("Error al clonar el repositorio: " .. result)
         else
             print("Repositorio clonado exitosamente.")
+            vim.opt.runtimepath:append(plugin_dir)
+            if spec.build then
+                spec.build()
+            end
         end
+    else
+        vim.opt.runtimepath:append(plugin_dir)
     end
-
-
-    vim.opt.runtimepath:append(plugin_dir)
 
     local doc_dir = plugin_dir .. "/doc"
     if vim.uv.fs_stat(doc_dir) then
         vim.cmd.helptags(doc_dir)
-    end
-
-    if not spec then
-        return
     end
 
     if spec.config then
@@ -69,6 +70,7 @@ function M.setup()
     if not vim.uv.fs_stat(manpackpath) then
         vim.uv.fs_mkdir(manpackpath, 511)
     end
+
     _G.Manpack = M
 end
 
